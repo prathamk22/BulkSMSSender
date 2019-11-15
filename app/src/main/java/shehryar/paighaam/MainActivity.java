@@ -13,6 +13,8 @@
 
 package shehryar.paighaam;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
@@ -24,15 +26,15 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.support.annotation.NonNull;
-import android.telephony.SmsManager;
-import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.telephony.SmsManager;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -65,10 +67,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     String filePath = "";
     PowerManager.WakeLock wl;
 
+    private String[] permissions = new String[]{
+            Manifest.permission.SEND_SMS,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        //add permissions to android 8.0 or latest
+        Permission.permissionsValidate(1, MainActivity.this, permissions);
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -100,6 +111,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         dirChooserButton1.setOnClickListener(new View.OnClickListener() {
             String m_chosen;
 
+            @SuppressLint("InvalidWakeLockTag")
             @Override
             public void onClick(View v) {
                 SimpleFileDialog FileOpenDialog = new SimpleFileDialog(MainActivity.this, "FileOpen",
@@ -129,7 +141,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 FileOpenDialog.chooseFile_or_Dir();
                 PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
                 wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "My Tag");
-                wl.acquire(10*60*1000L /*10 minutes*/);
+                wl.acquire(10 * 60 * 1000L /*10 minutes*/);
                 progressBar = new ProgressDialog(v.getContext());
                 progressBar.setCancelable(false);
                 progressBar.setMessage("SMS Sending...");
@@ -249,7 +261,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     void sendIt() {
         try {
-
             SmsManager smsManager = SmsManager.getDefault();
             smsManager.sendTextMessage(nmbers.get(i), null, smsMessageET.getText().toString(), sentPI, null);
         } catch (Exception e) {
