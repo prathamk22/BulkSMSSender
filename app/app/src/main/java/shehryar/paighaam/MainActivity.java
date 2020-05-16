@@ -13,10 +13,12 @@ package shehryar.paighaam;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -68,6 +70,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private ProgressBar progressBar;
     private SMSWorker worker;
     private ScheduledExecutorService ses;
+    private PowerManager.WakeLock wl;
 
     private String[] permissions = new String[]{
             Manifest.permission.SEND_SMS,
@@ -93,6 +96,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         NavigationView navigationView = findViewById(R.id.nav_view);
         sendSMSBtn = findViewById(R.id.btnSendSMS);
 
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "SMSAPP:PowerTag");
+
         setSupportActionBar(toolbar);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -111,7 +117,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     intent = new Intent(Intent.ACTION_OPEN_DOCUMENT)
                             .setType("text/*")
                             .addCategory(Intent.CATEGORY_OPENABLE);
-
+                    String[] types = {"text/*","text/csv"};
+                    intent.putExtra(Intent.EXTRA_MIME_TYPES, types);
                     startActivityForResult(Intent.createChooser(intent, "Select a file"), FILE_REQUEST_CODE);
                 }
             }
@@ -152,6 +159,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     progressBar.setVisibility(View.GONE);
                     smsMessageET.setText("");
                     worker.removeNotification();
+                    wl.release();
                     btnEnabled(true);
                 } else {
                     Toast.makeText(this, "Start a service first", Toast.LENGTH_SHORT).show();
@@ -253,6 +261,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         worker = new SMSWorker(getApplicationContext(),
                 smsMessageET.getText().toString(),
                 ses, this, nmbers);
+        wl.acquire(15*60*1000L /*15 minutes*/);
         progressBar.setMax(nmbers.size());
         progressBar.setVisibility(View.VISIBLE);
         numberLeft.setText("Number's Left:".concat(String.valueOf(nmbers.size())));
@@ -260,8 +269,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void SingleSmsSent(int progress) {
-        Log.e("Progress",String.valueOf(progress));
         progressBar.setProgress(progress);
+        if (wl.isHeld())
+            wl.release();
+        wl.acquire(15*60*1000L /*15 minutes*/);
         numberLeft.setText("Number's Left:".concat(String.valueOf(nmbers.size() - progress)));
         arrayAdapter.notifyDataSetChanged();
     }
@@ -278,6 +289,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         numberLeft.setText("");
         smsMessageET.setText("");
         worker.removeNotification();
+        wl.release();
         btnEnabled(true);
     }
 }
