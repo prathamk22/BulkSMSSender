@@ -18,39 +18,30 @@ import java.util.concurrent.TimeUnit;
 
 public class SMSWorker {
 
-    private Runnable task;
-    private PendingIntent sentPI;
     Context context;
     private int count = 0, i = 0;
-    private ScheduledExecutorService ses;
     final static int INTERVAL = 1;
     boolean isPreviousSent = true;
     ArrayList<String> numberList;
     private String smsToBeSent;
     private ScheduledFuture<?> scheduledFuture;
-    private SMSCallbackInterface smsCallbackInterface;
     final static String SENT = "SENT_SMS_ACTION";
     private NotificationManager manager;
     private BroadcastReceiver receiver;
 
     public SMSWorker(final Context context, String smsToBeSent, final ScheduledExecutorService ses, final SMSCallbackInterface smsCallbackInterface, final ArrayList<String> numberList) {
         this.context = context;
-        this.ses = ses;
         this.smsToBeSent = smsToBeSent;
         this.numberList = numberList;
         count = numberList.size();
         i = 0;
-        this.smsCallbackInterface = smsCallbackInterface;
         manager = new NotificationManager(context, String.valueOf(count), (android.app.NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE));
         manager.createNewNotification();
-        task = new Runnable() {
+        Runnable task = new Runnable() {
             @Override
             public void run() {
-                Log.e("Calling","Task");
-                Log.e("Count is"+ i, Integer.toString(count));
                 if (i < count) {
-                    if (isPreviousSent){
-                        Log.e("Inside","Here");
+                    if (isPreviousSent) {
                         sendSms();
                     }
                 } else {
@@ -65,10 +56,10 @@ public class SMSWorker {
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context arg0, Intent arg1) {
+                isPreviousSent = true;
                 switch (getResultCode()) {
                     case Activity.RESULT_OK:
-                        isPreviousSent = true;
-                        smsCallbackInterface.SingleSmsSent(i+1);
+                        smsCallbackInterface.SingleSmsSent(i + 1);
                         manager.updateText(String.valueOf(i + 1).concat("/").concat(String.valueOf(count)));
                         i++;
                         if (i == count) {
@@ -109,16 +100,13 @@ public class SMSWorker {
     }
 
     private void sendSms() {
-        Log.e("Got","Here");
-        sentPI = PendingIntent.getBroadcast(context, 0, new Intent(SENT), 0);
+        PendingIntent sentPI = PendingIntent.getBroadcast(context, 0, new Intent(SENT), 0);
         try {
             isPreviousSent = false;
-            Log.e("Got","Here 2");
-            Log.e("Sending Sms at" + Calendar.getInstance().getTime().toString(), numberList.get(i));
             SmsManager smsManager = SmsManager.getDefault();
             smsManager.sendTextMessage(numberList.get(i), null, smsToBeSent, sentPI, null);
         } catch (Exception e) {
-            Log.e("Error", e.getLocalizedMessage());
+            isPreviousSent = true;
             Toast.makeText(context, e.getLocalizedMessage(), Toast.LENGTH_LONG).show();
             scheduledFuture.cancel(true);
             removeNotification();

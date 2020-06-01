@@ -211,18 +211,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     public void getPhoneNumber(Uri uri) {
         if (uri.getPath() != null) {
+            Log.e("TAG", "getPhoneNumber: " + uri.getEncodedPath());
             String path = uri.getPath().substring(uri.getPath().indexOf(":") + 1);
-            filename.setText(path);
             filePath = path;
-            File file = new File(Environment.getExternalStorageDirectory(), path);
+            File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), path);
             try {
-                FileInputStream is = new FileInputStream(file);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                InputStreamReader is = new InputStreamReader(getContentResolver().openInputStream(uri));
+                BufferedReader reader = new BufferedReader(is);
                 String line = reader.readLine();
                 nmbers.clear();
+                filename.setText(path);
                 while (line != null) {
-                    Log.d("Phone Number", line);
-                    nmbers.add(line);
+                    if (line.length() <=12)
+                        nmbers.add(line);
                     line = reader.readLine();
                 }
                 nmbrsList.setAdapter(arrayAdapter);
