@@ -15,10 +15,14 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -58,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ImageView sendSMSBtn;
     EditText smsMessageET;
     ListView nmbrsList;
-    TextView filename, numberLeft;
+    TextView filename, numberLeft,length;
     Button dirChooserButton1;
 
     public static int limit, pause, deleteNum;
@@ -88,6 +92,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         filename = findViewById(R.id.filename);
+        length = findViewById(R.id.length);
         numberLeft = findViewById(R.id.numberLeft);
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         nmbrsList = findViewById(R.id.listView1);
@@ -95,6 +100,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         progressBar = findViewById(R.id.progressBar);
         NavigationView navigationView = findViewById(R.id.nav_view);
         sendSMSBtn = findViewById(R.id.btnSendSMS);
+        smsMessageET = findViewById(R.id.editText1);
+        numberLeft.setNestedScrollingEnabled(true);
 
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "SMSAPP:PowerTag");
@@ -107,6 +114,29 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         ses = Executors.newScheduledThreadPool(1);
         navigationView.setNavigationItemSelectedListener(this);
         arrayAdapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, nmbers);
+
+        smsMessageET.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                if (charSequence.length()>=160){
+                    length.setTextColor(Color.parseColor("#ff0000"));
+                    length.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
+                }else{
+                    length.setTextColor(Color.parseColor("#000000"));
+                    length.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL));
+                }
+                length.setText(charSequence.length() + "/160");
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+            }
+        });
 
         dirChooserButton1.setOnClickListener(new View.OnClickListener() {
             @SuppressLint("InvalidWakeLockTag")
@@ -126,7 +156,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         sendSMSBtn.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
-                smsMessageET = findViewById(R.id.editText1);
                 if (smsMessageET.getText().toString().isEmpty())
                     Toast.makeText(getBaseContext(), "Message can not be empty!", Toast.LENGTH_SHORT).show();
                 else if (filePath.isEmpty()) {
